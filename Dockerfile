@@ -1,16 +1,31 @@
+FROM eclipse-temurin:22-jdk AS buildstage 
 
-FROM openjdk:17-jdk-slim
-
+RUN apt-get update && apt-get install -y maven
 
 WORKDIR /app
 
-COPY target/bdget-0.0.1-SNAPSHOT.jar app.jar
 
-COPY Wallet_RMKNXQLAHHEARTIA /app/oracle_wallet
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
 
-EXPOSE 8080
+COPY src /app/src
+COPY Wallet_RMKNXQLAHHEARTIA /app/wallet
 
-ENV TNS_ADMIN=/app/oracle_wallet
+ENV TNS_ADMIN=/app/wallet
 
-CMD ["java", "-jar", "app.jar"]
+
+RUN mvn clean package -DskipTests
+
+
+RUN ls -la target/
+
+FROM eclipse-temurin:22-jdk 
+
+
+COPY --from=buildstage /app/target/*.jar /app/citas.jar
+
+
+COPY Wallet_RMKNXQLAHHEARTIA /app/wallet
+
+ENTRYPOINT [ "java", "-jar","/app/citas.jar" ] 
